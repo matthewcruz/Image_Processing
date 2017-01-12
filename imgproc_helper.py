@@ -34,86 +34,122 @@ def histogram(img):
 
 	return hs_map
 
-class Helper:
+
+class Kernel:
 
 	def __init__(self):
-		self.hi = 1
+		self.Sigma = 1
 
-
-	def Kernel(self, ktype, dimx, dimy,  Ndim= 3,param1 = 1, param2 = 0 , param3 = 1, param4 = 1):
-		#This will create a kernel depending on the type selected
-		#param1 is sigma for gauss
-
-		if Ndim%2 == 0:											#error check for even kernel size
-			Ndim += 1
+	def gabor(self, Nsize, Sigma, Lambda, theta, gamma =1, psi =0):
+		'''
+		Gabor filter in 2D
+		#sigma is the standard deviation
+		#gamma is the  aspect ratio to make filter an ellipse
+		#Lambda is the wavelength
+		#theta or the rotaation
+		#psi which is the phase shift, we will ignore for now
+		'''
+		
+		if Nsize%2 == 0:											#error check for even kernel size
+			Nsize += 1
 			print 'The Ndim provided is even, next highest odd was used' 
 
-		if (ktype=='gauss') or (ktype =='Gauss') or (ktype =='gaussian') or (ktype =='Gaussian'):
-			Sigma = param1
-			kernel = np.zeros((Ndim, Ndim)) 					# create a kernel that is square with side dim 2*N+1
-			mid = np.floor(len(kernel)/2)						#create a middle point index
+		mid = np.floor(Nsize/2)
+		kernel = np.zeros((Nsize,Nsize))
+		for c in range(0, len(kernel[0])):
+			for r in range(0, len(kernel)):
+				xp = (r- mid)*cos(theta) + (c-mid)*sin(theta)
+				yp = -(r-mid)*sin(theta) + (c-mid)*cos(theta)
+				b = exp(-(xp**2 + (gamma**2)*(yp**2))/(2*Sigma**2))
+				#kernel_imag[r,c] = gimag = b*sin(2*pi*xp/gamma + psi)
+				kernel[r,c] = b*cos(2*pi*xp/gamma + psi)
 
-			if dimx==1 and dimy==1:
-				a =(1./(2.*pi*Sigma**2))
-				for c in range(0, len(kernel[0])):
-					for r in range(0, len(kernel)):
-						kernel[r,c] = a*exp(-((r-mid)**2+(c-mid)**2)/(2.*Sigma**2))
-
-			else:
-				kernel = np.zeros(Ndim)
-				mid = np.floor(Ndim/2)
-				a = (1./(Sigma *(2*pi)**0.5))
-				for p in range(Ndim):
-					kernel[p] = a*exp((-0.5)*((p-mid)/Sigma)**2)
-					print kernel[p]
-
-				if dimy ==1:
-					kernel.shape = ((Ndim,1))
-					return kernel
-				else:
-					kernel.shape == ((1,Ndim))
-					return kernel
+		return kernel/np.sum(kernel*kernel)
 
 
-		elif (ktype== 'gabor') or (ktype =='Gabor'):
-			#WIP
-			#param1 is sigma
-			#param2 is gamma is the amount of stretch in the y direction ?
-			#param3 is the Lambda representing wavelength
-			#param4 is the gamma or the rotaation
-			#param5 is psi which is the phase shift, we will ignore that here for now
-			sigma = param1
-			gamma = param2
-			Lambda = param3
-			theta = param4
-			psi = 0
-			mid = np.floor(Ndim/2)
-			kernel = np.zeros((Ndim,Ndim))
-			if dimx==1 and dimy==1:
-				for c in range(0, len(kernel[0])):
-					for r in range(0, len(kernel)):
-						xp = (r- mid)*cos(theta) + (c-mid)*sin(theta)
-						yp = -(r-mid)*sin(theta) + (c-mid)*cos(theta)
-						b = exp(-(xp**2 + (gamma**2)*(yp**2))/(2*sigma**2))
-						#kernel_imag[r,c] = gimag = b*sin(2*pi*xp/gamma + psi)
-						kernel[r,c] = b*cos(2*pi*xp/gamma + psi)		
-
-		elif (ktype == 'sobel') or (ktype =='Sobel'):
-			#Gy = np.array([[1,2,1],[0,0,0],[-1,-2,-1]])
-			#Gx = np.rot90(Gy)or np.array([[1,0,-1],[2,0,-2],[1,0,-1]])
-			if dimx == 1 and dimy==1:
-				kernel = np.array([[1,0,-1],[0,0,0],[-1,0,1]])
-			elif dimy == 1:
-				kernel = np.array([[1,2,1],[0,0,0],[-1,-2,-1]])
-			elif dimx == 1:
-				kernel = np.array([[1,0,-1],[2,0,-2],[1,0,-1]])
-
-		else:
-			print 'ktype parameter requires either "gauss", "gabor", or "sobel" '
+	def sobel(self, dimx, dimy):
+		#Gy = np.array([[1,2,1],[0,0,0],[-1,-2,-1]])
+		#Gx = np.rot90(Gy)or np.array([[1,0,-1],[2,0,-2],[1,0,-1]])
+		if dimx == 1 and dimy==1:
+			kernel = np.array([[1,0,-1],[0,0,0],[-1,0,1]])
+		elif dimy == 1:
+			kernel = np.array([[1,2,1],[0,0,0],[-1,-2,-1]])
+		elif dimx == 1:
+			kernel = np.array([[1,0,-1],[2,0,-2],[1,0,-1]])
 
 		return kernel
-	def something(self, img_src):
-		self.raw  = np.copy(img_src)
-		self.gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+
+	def gauss(self, Nsize, dimx, dimy, Sigma):
+		if Nsize%2 == 0:											#error check for even kernel size
+			Nsize += 1
+			print 'The Ndim provided is even, next highest odd was used' 
+
+		mid = np.floor(Nsize/2)
+
+		if dimx==1 and dimy==1:
+			kernel = np.zeros((Nsize, Nsize)) 					# create a kernel that is square with side dim 2*N+1
+			a =(1./(2.*pi*Sigma**2))
+			for c in range(0, len(kernel[0])):
+				for r in range(0, len(kernel)):
+					kernel[r,c] = a*exp(-((r-mid)**2+(c-mid)**2)/(2.*Sigma**2))
+			return kernel
+
+		else:
+			kernel = np.zeros(Nsize)
+			a = (1./(Sigma *(2*pi)**0.5))
+			for p in range(Nsize):
+				kernel[p] = a*exp((-0.5)*((p-mid)/Sigma)**2)
+
+			if dimy ==1:
+				kernel.shape = ((Nsize,1))
+				return kernel
+			else:
+				kernel.shape == ((1,Nsize))
+				return kernel
+
+
+
+def convolve(mat, mask):
+	#masks are either 2D or 1D
+	#matrices can be 2D or multidimensional, need to loop through if 
+	#check the mask and create a case scenario
+	mat = np.array(mat)
+	mask = np.array(mask)
+
+	len_mat =  len(mat.shape)
+	pad = np.floor(np.max(mask.shape)/2)
+	mask_len = pad*2+1
+	#this will get tricky if 1D masks
+
+
+	if len(mat.shape) > 2:											#checking for high dimension
+		depth, r_mat, c_mat = mat.shape
+		out_mat = np.ones((depth,r_mat,c_mat))				#create a blank same dim as input
+	else:
+		r_mat, c_mat = mat.shape
+		out_mat = np.ones((r_mat, c_mat))
+		depth =1
+
+	for dim in range(depth):
+		ref_mat = 255*np.ones((r_mat+2*pad,c_mat+2*pad))		#create a ref mat with padding
+		ref_mat[pad:r_mat+pad,pad:c_mat+pad] = np.copy(mat)		#fill center with raw mat
+		print ref_mat
+		temp_mat = np.ones((r_mat, c_mat))
+		for r in range(r_mat):
+			for c in range(c_mat):
+				temp_mat[r,c] = np.sum(np.multiply(mask, ref_mat[r:r+mask_len,c:c+mask_len]))
+		if depth>1:		
+			out_mat[dim] = np.copy(temp_mat)
+		else:
+			out_mat = np.copy(temp_mat)
+	return out_mat
+
+
+
+
+def something(img_src):
+	raw  = np.copy(img_src)
+	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
