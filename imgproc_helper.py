@@ -21,6 +21,13 @@ def walk_folder(walk_dir):
 
     return files
 
+def load_data():
+    data = matrix(genfromtxt('spambase_data.csv', delimiter=','))
+    data = np.array(data)
+
+    return data
+
+
 def histogram(img):
 	#requires image to be in HSV
 	img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -62,7 +69,7 @@ class Kernel:
 				yp = -(r-mid)*sin(theta) + (c-mid)*cos(theta)
 				b = exp(-(xp**2 + (gamma**2)*(yp**2))/(2*Sigma**2))
 				#kernel_imag[r,c] = gimag = b*sin(2*pi*xp/gamma + psi)
-				kernel[r,c] = b*cos(2*pi*xp/gamma + psi)
+				kernel[r,c] = b*cos(2*pi*xp/Lambda + psi)
 
 		return kernel/np.sum(kernel*kernel)
 
